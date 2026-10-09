@@ -2,6 +2,8 @@
 生成示例 sales_raw.xlsx，包含正常数据与脏数据，用于测试报表脚本。
 """
 
+import os
+
 import pandas as pd
 
 
@@ -30,5 +32,11 @@ data = [
 
 
 df = pd.DataFrame(data, columns=['日期', '销售员', '产品', '数量', '单价', '地区'])
-df.to_excel('sales_raw.xlsx', index=False, engine='openpyxl')
-print("已生成 sales_raw.xlsx")
+
+# 输出到项目 data/ 目录
+src_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(src_dir)
+output_path = os.path.join(project_dir, 'data', 'sales_raw.xlsx')
+
+df.to_excel(output_path, index=False, engine='openpyxl')
+print(f"已生成 {output_path}")

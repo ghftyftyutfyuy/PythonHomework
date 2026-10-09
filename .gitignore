@@ -1,0 +1,22 @@
+# Excel 临时文件
+~$*.xlsx
+
+# 根目录旧文件（已移动到 lab1_excel/ 下）
+/report.xlsx
+/sales_raw.xlsx
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/

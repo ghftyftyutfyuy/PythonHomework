@@ -148,8 +148,11 @@ def save_report(df_clean, by_salesperson, by_region, monthly, overview, output_p
 
 
 def main():
-    input_file = 'sales_raw.xlsx'
-    output_file = 'report.xlsx'
+    # 根据脚本位置自动定位 data/ 和 output/ 目录
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(src_dir)
+    input_file = os.path.join(project_dir, 'data', 'sales_raw.xlsx')
+    output_file = os.path.join(project_dir, 'output', 'report.xlsx')
 
     try:
         print(f"正在读取 {input_file} ...")
