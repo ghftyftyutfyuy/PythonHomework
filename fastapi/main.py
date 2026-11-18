@@ -8,10 +8,13 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
+
+# 引入离线版 FastAPI
+from fastapi_offline import FastAPIOffline
 
 
 # 内存数据存储
@@ -74,7 +77,7 @@ async def validation_exception_handler(request, exc: RequestValidationError):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPIOffline):
     # 启动时清空内存数据（方便测试重复运行）
     global records_db, next_id
     records_db.clear()
@@ -82,7 +85,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="FastAPI 记账接口", lifespan=lifespan)
+# 【修改点】将原来的 FastAPI 替换为 FastAPIOffline
+app = FastAPIOffline(title="FastAPI 记账接口", lifespan=lifespan)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 

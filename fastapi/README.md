@@ -71,7 +71,7 @@ GET /summary?start_date=2024-10-01&end_date=2024-10-31
 ### 安装依赖
 
 ```bash
-cd lab2_fastapi
+cd fastapi
 pip install -r requirements.txt
 ```
 
