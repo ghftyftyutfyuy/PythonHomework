@@ -1,5 +1,7 @@
-# Excel 临时文件
+# Office 临时锁文件（Word / Excel 打开文档时生成，不上传）
 ~$*.xlsx
+~$*.docx
+~$*.doc
 
 # 根目录旧文件（已移动到 excel/ 下）
 /report.xlsx
