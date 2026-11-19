@@ -5,9 +5,9 @@ import re
 from collections import Counter
 from pathlib import Path
 
-import jieba
+import make_wordcloud
 
-jieba.setLogLevel(logging.ERROR)
+make_wordcloud.setLogLevel(logging.ERROR)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -73,9 +73,9 @@ def is_valid_word(word: str) -> bool:
 
 def count_hot_words(text: str):
     for word in USER_WORDS:
-        jieba.add_word(word)
+        make_wordcloud.add_word(word)
 
-    words = jieba.lcut(text)
+    words = make_wordcloud.lcut(text)
     words = [word.strip() for word in words]
     words = [word for word in words if is_valid_word(word)]
 

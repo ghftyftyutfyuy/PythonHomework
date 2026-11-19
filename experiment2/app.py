@@ -1,3 +1,6 @@
+import st_launch
+st_launch.launch()
+
 import streamlit as st
 import pandas as pd
 import numpy as np
