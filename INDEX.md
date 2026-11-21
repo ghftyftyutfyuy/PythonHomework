@@ -9,7 +9,7 @@
 | 条目 | 类别 | 内容摘要 | 主要交付物 |
 | --- | --- | --- | --- |
 | [experiment1/](experiment1/) | 实验1 | Excel 报表 + 记账接口 | `实验报告.docx`、`README.md`、两个子工程 |
-| [experiment2/](experiment2/) | 实验2 | 城市交通数据看板 | `app.py`、`实验报告.docx`、6 张截图 |
+| [experiment2/](experiment2/) | 实验2 | 城市交通数据看板 | `app.py`、`README.md`、`实验报告.docx`、6 张截图 |
 | [experiment3/](experiment3/) | 实验3 | 列表、元组、集合 | 5 个 `task*.py`、`思考题.md`、`README.md` |
 | [experiment4/](experiment4/) | 实验4 | 本地文档审查与摘要 Agent | `main.py`、词云 PNG、`README.md` |
 | [experiment5/](experiment5/) | 实验5 | Vibe Coding 爬虫 | 四步脚本、`NewsCrawler` 类、`result.csv` |
@@ -47,13 +47,12 @@
 
 | 路径 | 用途 |
 | --- | --- |
+| `README.md` | Markdown 版实验报告：实验目的、环境、数据说明、功能设计、运行方式与小结 |
 | `app.py` | Streamlit 看板主程序：亮暗主题、日期/区域筛选、图表、拥堵预警 |
 | `generate_data.py` | 生成 7 天模拟交通数据 |
 | `city_traffic.csv` | 模拟数据 |
 | `实验报告.docx` | 按课程模板填写的 Word 实验报告 |
 | `屏幕截图 *.png`（6 张） | 看板运行截图 |
-
-注：本目录没有 `README.md`，实验说明见 `实验报告.docx` 与 `app.py` 注释。
 
 ### experiment3/ — 实验3 Python 列表、元组、集合（2026-10-21）
 

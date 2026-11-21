@@ -5,7 +5,7 @@
 - 仓库地址：https://github.com/ghftyftyutfyuy/PythonHomework
 - 默认分支：`main`
 - 组织方式：5 个课程实验统一按 `experimentN/` 命名；平时作业保留原有文件夹名
-- 每个实验均附 Word 实验报告，多数另附可在 GitHub 上直接阅读的 Markdown 版报告
+- 五个实验均附 Word 实验报告，并各有一份可在 GitHub 上直接阅读的 Markdown 版实验报告
 
 ## 实验总览
 
@@ -39,7 +39,7 @@ PythonHomework/
 │   ├── fastapi/                   #   考题二：记账接口与 pytest
 │   ├── README.md
 │   └── 实验报告.docx
-├── experiment2/                   # 实验2：城市交通数据看板（Streamlit）
+├── experiment2/                   # 实验2：城市交通数据看板（Streamlit，含 README.md 报告）
 ├── experiment3/                   # 实验3：列表、元组、集合（5 个任务源码）
 ├── experiment4/                   # 实验4：本地文档审查 Agent（词云）
 │   ├── docs/  advanced/  output/

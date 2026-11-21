@@ -1,15 +1,19 @@
-# Lab2: FastAPI 记账接口
+# 实验1 · 考题二：FastAPI 记账接口
+
+> 对应实验1《Python Vibe Coding 实操》考题二，报告日期 2026-09-30。
+> 上级索引见 [`experiment1/README.md`](../README.md)，仓库首页见 [`README.md`](../../README.md)。
 
 实现一个简易记账 HTTP 服务，支持新增流水、查询流水、统计收支结余。
 
 ## 目录结构
 
-```
-lab2_fastapi/
+```text
+fastapi/
 ├── main.py              # FastAPI 主程序
 ├── test_main.py         # pytest 测试用例
-├── requirements.txt     # 依赖包
-└── README.md            # 说明文档
+├── requirements.txt     # 依赖清单
+├── README.md            # 本文件
+└── docs/                # AI 对话过程截图（ai-chat/ 下 5 张）
 ```
 
 ## 接口说明
@@ -71,7 +75,7 @@ GET /summary?start_date=2024-10-01&end_date=2024-10-31
 ### 安装依赖
 
 ```bash
-cd fastapi
+cd E:\PythonHomework\experiment1\fastapi
 pip install -r requirements.txt
 ```
 

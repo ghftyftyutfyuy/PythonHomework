@@ -34,5 +34,5 @@ experiment1/
 1. 需求澄清清单 —— 见各子目录 `README.md` 中的需求与验收标准；
 2. 可运行的源代码工程 —— `excel/src/`、`fastapi/main.py`，均含 README；
 3. 测试用例与运行结果 —— `fastapi/test_main.py`、`docs/` 下的截图；
-4. AI 协作过程记录 —— `excel/docs/ai-chat`、`fastapi/docs/ai-chat/` 下的对话截图；
+4. AI 协作过程记录 —— `excel/docs/` 下的 ai-chat 与截图、`fastapi/docs/ai-chat/` 下的对话截图；
 5. 文字复盘 —— 见各子目录 `README.md` 的说明部分。
