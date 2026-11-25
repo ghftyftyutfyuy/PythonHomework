@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+
+# ============================================================
+# 【答辩速读】main.py 是整个实验四的主程序
+# 一句话：把 docs/ 里的多篇本地文档批量读进来 -> 中文分词 -> 统计词频
+#         -> 画 Top50 词云 + 给每篇文档单独出一份关键词报告。
+# 核心链路（老师问「程序怎么跑的」就答这 4 步）：
+#   1) collect_files() 找出 docs/ 下所有 .txt / .md 文件
+#   2) read_text()     逐个读取，编码不对就换下一种编码（三级回退）
+#   3) tokenize()      jieba 精确模式切词，去掉停用词和单字符
+#   4) analyze()       Counter 统计词频取 Top50，再写报告、画词云
+# 用到的库：jieba 分词 / collections.Counter 词频 / wordcloud 词云 /
+#           matplotlib 显示 / numpy + Pillow 处理可选蒙版
+# 老师常问：为什么用精确模式？为什么要停用词和自定义词典？
+#           词云为什么必须指定中文字体？编码错误怎么处理？Top50 怎么来的？
+# 运行：python main.py --no-show  （--no-show 不弹窗，答辩演示更稳）
+# ============================================================
+
 """
 实验四：本地文档智能审查与摘要 Agent
 
@@ -31,6 +48,7 @@ import numpy as np
 from PIL import Image
 from wordcloud import WordCloud
 
+# jieba 首次加载词典会刷一堆红色日志，把日志级别调到 ERROR 就不显示了
 jieba.setLogLevel(logging.ERROR)
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -39,11 +57,16 @@ DEFAULT_STOPWORDS = BASE_DIR / "stopwords.txt"
 DEFAULT_USER_DICT = BASE_DIR / "user_dict.txt"
 DEFAULT_OUTPUT = BASE_DIR / "output"
 
+# 下面是一组「配置常量」：参数集中放这里，改配置不用翻代码。
+# ENCODINGS 是读文件时依次尝试的编码顺序；TOP_N 是全局高频词取前 50；
+# KEYWORDS_PER_FILE 是每篇文档单独取前 10；CORPUS_CHARS_PER_FILE 是
+# 每篇只留前 300 字做语料，避免给大模型脚本的输入太长。
 ENCODINGS = ("utf-8-sig", "utf-8", "gb18030")
 TOP_N = 50
 KEYWORDS_PER_FILE = 10
 CORPUS_CHARS_PER_FILE = 300
 
+# 兜底停用词：万一 stopwords.txt 丢了，程序照样能跑，这是容错设计的一环
 # 未提供停用词表时的兜底集合
 FALLBACK_STOPWORDS = {
     "的", "了", "和", "在", "是", "我", "你", "他", "我们", "他们",
@@ -53,11 +76,16 @@ FALLBACK_STOPWORDS = {
     "同时", "进一步", "不断", "可以", "需要", "能够", "具有", "进行",
 }
 
+# 三个正则表达式：TAG_RE 去 HTML 标签，MD_RE 去 Markdown 装饰符，
+# WORD_RE 判断词里是否含中文/字母/数字，用来排除纯标点的噪声词。
 TAG_RE = re.compile(r"<[^>]+>")
 MD_RE = re.compile(r"[#>*`|_\-=~\[\]()]+")
 WORD_RE = re.compile(r"[\u4e00-\u9fa5A-Za-z0-9]")
 
 
+# 【重点】wordcloud 默认字体没有中文字形，不指定字体的话中文全变成方框。
+# 所以自动在本机探测 微软雅黑/黑体/宋体；找不到就由下面报一个可读错误，
+# 而不是悄悄生成一张废图。
 def find_chinese_font() -> str | None:
     """自动探测本机中文字体，避免词云出现方框。"""
     candidates = (
@@ -72,6 +100,9 @@ def find_chinese_font() -> str | None:
     return None
 
 
+# 【重点·容错】同一批文档编码可能不一样：有的 UTF-8 带 BOM，有的是 GBK。
+# 按 ENCODINGS 依次尝试，成功返回 (正文, 实际编码)，报告里会记录这个编码。
+# 读不动的文件抛出的异常由 analyze() 逐个接住，不会拖垮整批。
 def read_text(path: Path) -> tuple[str, str]:
     """多编码回退读取，返回 (正文, 实际编码)。"""
     last_error: Exception | None = None
@@ -87,6 +118,7 @@ def read_text(path: Path) -> tuple[str, str]:
     )
 
 
+# 轻量清洗：去 HTML 标签、去 Markdown 符号、把连续空白压成一个空格
 def clean_text(raw: str) -> str:
     """轻量文本清洗：去 HTML 标签、Markdown 装饰符、压缩空白。"""
     text = TAG_RE.sub(" ", raw)
@@ -95,6 +127,10 @@ def clean_text(raw: str) -> str:
     return text.strip()
 
 
+# 【重点】jieba.lcut(text, cut_all=False) 是「精确模式」：每个字只属于一个词，
+# 不重叠、不重复，适合做词频统计；全模式 cut_all=True 会列出所有可能的
+# 成词组合，词会重复，统计出来不准。
+# 保留条件三条：长度>1（去单字）、不在停用词表、含中文/字母/数字（去标点）。
 def tokenize(text: str, stopwords: set[str]) -> list[str]:
     """jieba 精确模式分词 + 过滤停用词与单字符。"""
     result = []
@@ -105,9 +141,14 @@ def tokenize(text: str, stopwords: set[str]) -> list[str]:
     return result
 
 
+# 用「类」把配置和整套流程打包起来。好处：三个进阶脚本（蒙特卡洛、
+# 大模型审查、自动监控）都能 import 这个类复用同一套分析逻辑，
+# 不用复制粘贴代码，这也是指导书里「向 Agent 演进」的结构基础。
 class DocumentAnalyzer:
     """本地文档智能审查 Agent 原型（面向对象，便于 watchdog / LLM 模块复用）。"""
 
+    # 初始化：记下四个路径、探测中文字体、准备停用词集合和 errors 列表。
+    # errors 专门收集「非致命错误」，最后统一写进报告，不中断分析流程。
     def __init__(
         self,
         docs_dir: Path = DEFAULT_DOCS,
@@ -125,6 +166,9 @@ class DocumentAnalyzer:
         self.errors: list[str] = []
 
     # ---------- 配置加载 ----------
+    # 【重点】jieba 默认词典不认识领域新词，例如「新质生产力」会被切成
+    # 「新质 / 生产 / 力」，「数字中国」被切碎。load_userdict() 读入
+    # user_dict.txt 后能整体切出，词频才准确。
     def load_user_dict(self) -> int:
         if not self.user_dict_file.exists():
             self.errors.append(f"自定义词典不存在，已跳过：{self.user_dict_file}")
@@ -138,6 +182,7 @@ class DocumentAnalyzer:
             self.errors.append(f"自定义词典加载失败：{exc}")
             return 0
 
+    # 读停用词表；文件不存在或读失败时退回内置兜底集合，保证程序不崩
     def load_stopwords(self) -> set[str]:
         if not self.stopwords_file.exists():
             self.errors.append(f"停用词表不存在，使用内置默认停用词：{self.stopwords_file}")
@@ -151,6 +196,7 @@ class DocumentAnalyzer:
             return set(FALLBACK_STOPWORDS)
 
     # ---------- 核心分析 ----------
+    # 只收 .txt / .md 两种后缀；sorted() 保证每次运行顺序一致，结果可复现
     def collect_files(self) -> list[Path]:
         if not self.docs_dir.exists():
             raise FileNotFoundError(f"文档目录不存在：{self.docs_dir}")
@@ -162,6 +208,12 @@ class DocumentAnalyzer:
         )
         return files
 
+    # 【最核心的方法】答辩讲代码就指着这一段讲，四步全在这里：
+    #   1) 找文件；2) 逐个「读取+清洗+分词」；3) Counter 累计词频；
+    #   4) 汇总成 result 字典返回。
+    # global_counter 是「所有文档合起来」的词频；counter 是「单篇文档」的。
+    # 每个文件单独 try/except：某个文件坏了只记一条错误，其余照常分析。
+    # 返回的 result 含：文件列表、逐文件详情、全局词频、Top50、清洗后语料。
     def analyze(self) -> dict:
         files = self.collect_files()
         if not files:
@@ -171,6 +223,7 @@ class DocumentAnalyzer:
             )
 
         details: list[dict] = []
+        # Counter 是标准库里的计数器，传一个词列表进去就得到「词 -> 次数」
         global_counter: Counter = Counter()
         corpus_parts: list[str] = []
 
@@ -179,6 +232,7 @@ class DocumentAnalyzer:
                 raw, encoding = read_text(path)
                 text = clean_text(raw)
                 words = tokenize(text, self.stopwords)
+                # 单篇文档的词频：先统计出自己的 Top10，再把词累加进全局计数器
                 counter = Counter(words)
                 global_counter.update(words)
                 details.append({
@@ -199,12 +253,16 @@ class DocumentAnalyzer:
             "files": files,
             "details": details,
             "global": global_counter,
+            # most_common(50) 按次数降序取前 50，这就是词云的数据来源
             "top50": global_counter.most_common(TOP_N),
             "corpus": "\n\n".join(corpus_parts),
             "stopwords": self.stopwords,
         }
 
     # ---------- 输出 ----------
+    # 输出三份文件：TXT 给人看；CSV 给 Excel 看；cleaned_corpus.txt 给
+    # 进阶 2 的大模型脚本当输入。CSV 用 utf-8-sig（带 BOM 的 UTF-8），
+    # 这样 Excel 直接打开中文不会乱码。
     def write_report(self, result: dict) -> tuple[Path, Path, Path]:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         txt_path = self.output_dir / "keywords_report.txt"
@@ -248,6 +306,11 @@ class DocumentAnalyzer:
         corpus_path.write_text(result["corpus"] + "\n", encoding="utf-8")
         return txt_path, csv_path, corpus_path
 
+    # 【重点】generate_from_frequencies() 直接吃「词 -> 词频」字典，
+    # 字越大代表词频越高，位置是随机排布、没有含义。
+    # font_path 必须是中文字体；collocations=False 不统计词组搭配；
+    # mask 是可选蒙版图片（numpy + Pillow 转灰度数组），能让词云排成指定形状。
+    # show=True 弹窗显示；--no-show 时只保存 PNG 不弹窗，答辩演示用后者。
     def render_wordcloud(self, result: dict, mask_path: Path | None = None, show: bool = True) -> Path:
         if self.font_path is None:
             raise RuntimeError(
@@ -274,6 +337,7 @@ class DocumentAnalyzer:
         image_path = self.output_dir / "document_wordcloud.png"
         wc.to_file(str(image_path))
 
+        # 词云标题也是中文，matplotlib 同样要指定中文字体，否则标题变方框
         plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
         plt.rcParams["axes.unicode_minus"] = False
         plt.figure(figsize=(10, 8))
@@ -288,6 +352,7 @@ class DocumentAnalyzer:
         return image_path
 
 
+# 把结果直接打印到 PyCharm 运行窗口，答辩时不用打开任何文件就能展示
 def print_console(result: dict, analyzer: DocumentAnalyzer, paths: dict) -> None:
     print("=" * 64)
     print("实验四：本地文档智能审查与摘要 Agent")
@@ -318,6 +383,10 @@ def print_console(result: dict, analyzer: DocumentAnalyzer, paths: dict) -> None
     print("=" * 64)
 
 
+# 命令行入口。argparse 让 --docs / --stopwords / --user-dict / --output /
+# --font / --mask / --no-show 都能从外部传入，说明「换一批文档不用改代码」。
+# [1/4]~[4/4] 的进度打印对应指导书要求的分步运行验证；
+# 只捕获预期的三类异常并打印可读提示，返回退出码 1。
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="实验四：本地文档智能审查与摘要 Agent")
     parser.add_argument("--docs", type=Path, default=DEFAULT_DOCS, help="待审查文档目录")
@@ -361,5 +430,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
+# 只有「直接运行本文件」时才执行 main()。被别的脚本 import 时不会自动跑，
+# 这正是进阶脚本能安全复用 DocumentAnalyzer 的原因。
 if __name__ == "__main__":
     raise SystemExit(main())
