@@ -11,9 +11,7 @@
 #   4) analyze()       Counter 统计词频取 Top50，再写报告、画词云
 # 用到的库：jieba 分词 / collections.Counter 词频 / wordcloud 词云 /
 #           matplotlib 显示 / numpy + Pillow 处理可选蒙版
-# 老师常问：为什么用精确模式？为什么要停用词和自定义词典？
-#           词云为什么必须指定中文字体？编码错误怎么处理？Top50 怎么来的？
-# 运行：python main.py --no-show  （--no-show 不弹窗，答辩演示更稳）
+
 # ============================================================
 
 """
